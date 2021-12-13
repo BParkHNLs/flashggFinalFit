@@ -53,8 +53,10 @@ using namespace boost;
 
 namespace po = program_options;
 
-bool BLIND = true;
+bool BLIND = false;
 bool runFtestCheckWithToys=false;
+
+// for blind=true, changing the below parameters does not produce expected binning and ranges
 int mgg_low =100;
 int mgg_high =180;
 int nBinsForMass = 4*(mgg_high-mgg_low);
