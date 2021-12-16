@@ -308,7 +308,8 @@ double getGoodnessOfFit(RooRealVar *mass, RooAbsPdf *mpdf, RooDataSet *data, std
 }
 
 void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector<string> flashggCats_, int status, double *prob){
-  
+  /* Plot single pdf vs data */
+    
   // Chi2 taken from full range fit
   RooPlot *plot_chi2 = mass->frame();
   data->plotOn(plot_chi2,Binning(nBinsForMass));
@@ -328,7 +329,7 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
   }
   else data->plotOn(plot,Binning(mgg_high-mgg_low));
 
- // data->plotOn(plot,Binning(mgg_high-mgg_low));
+  // data->plotOn(plot,Binning(mgg_high-mgg_low));
   TCanvas *canv = new TCanvas();
   pdf->plotOn(plot);//,RooFit::NormRange("fitdata_1,fitdata_2"));
   pdf->paramOn(plot,RooFit::Layout(0.34,0.96,0.89),RooFit::Format("NEA",AutoPrecision(1)));
@@ -348,6 +349,7 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
   delete lat;
 }
 void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet *data, string name, vector<string> flashggCats_, int cat, int bestFitPdf=-1){
+  /* Plot MultiPdf vs data, wih dummy ratio plot (why?) */
   
   int color[7] = {kBlue,kRed,kMagenta,kGreen+1,kOrange+7,kAzure+10,kBlack};
   TLegend *leg = new TLegend(0.5,0.55,0.92,0.88);
@@ -416,23 +418,23 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
   TGraphAsymmErrors *hdatasub = new TGraphAsymmErrors(npoints);
   //hdatasub->SetMarkerSize(defmarkersize);
   for (int ipoint=0; ipoint<npoints; ++ipoint) {
-  //double bkgval = hbplottmp->GetBinContent(ipoint+1);
-  plotdata->GetPoint(ipoint, xtmp,ytmp);
-  double bkgval = nomBkgCurve->interpolate(xtmp);
-  if (BLIND) {
-   if ((xtmp > 115 ) && ( xtmp < 135) ) continue;
-  }
-  std::cout << "[INFO] plotdata->Integral() " <<  plotdata->Integral() << " ( bins " << npoints  << ") hbkgplots[i]->Integral() " << hbplottmp->Integral() << " (bins " << hbplottmp->GetNbinsX() << std::endl;
- double errhi = plotdata->GetErrorYhigh(ipoint);
- double errlow = plotdata->GetErrorYlow(ipoint);
-       
- //std::cout << "[INFO]  Channel " << name  << " errhi " << errhi << " errlow " << errlow  << std::endl;
- std::cout << "[INFO] Channel  " << name << " setting point " << point <<" : xtmp "<< xtmp << "  ytmp " << ytmp << " bkgval  " << bkgval << " ytmp-bkgval " << ytmp-bkgval << std::endl;
- bool drawZeroBins_ =1;
- if (!drawZeroBins_) if(fabs(ytmp)<1e-5) continue; 
- hdatasub->SetPoint(point,xtmp,ytmp-bkgval);
- hdatasub->SetPointError(point,0.,0.,errlow,errhi );
- point++;
+    //double bkgval = hbplottmp->GetBinContent(ipoint+1);
+    plotdata->GetPoint(ipoint, xtmp,ytmp);
+    double bkgval = nomBkgCurve->interpolate(xtmp);
+    if (BLIND) {
+     if ((xtmp > 115 ) && ( xtmp < 135) ) continue;
+    }
+    std::cout << "[INFO] plotdata->Integral() " <<  plotdata->Integral() << " ( bins " << npoints  << ") hbkgplots[i]->Integral() " << hbplottmp->Integral() << " (bins " << hbplottmp->GetNbinsX() << std::endl;
+    double errhi = plotdata->GetErrorYhigh(ipoint);
+    double errlow = plotdata->GetErrorYlow(ipoint);
+         
+    //std::cout << "[INFO]  Channel " << name  << " errhi " << errhi << " errlow " << errlow  << std::endl;
+    std::cout << "[INFO] Channel  " << name << " setting point " << point <<" : xtmp "<< xtmp << "  ytmp " << ytmp << " bkgval  " << bkgval << " ytmp-bkgval " << ytmp-bkgval << std::endl;
+    bool drawZeroBins_ =1;
+    if (!drawZeroBins_) if(fabs(ytmp)<1e-5) continue; 
+    hdatasub->SetPoint(point,xtmp,ytmp-bkgval);
+    hdatasub->SetPointError(point,0.,0.,errlow,errhi );
+    point++;
   } 
   pad2->cd();
   TH1 *hdummy = new TH1D("hdummyweight","",mgg_high-mgg_low,mgg_low,mgg_high);
@@ -459,6 +461,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
 }
 
 void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, string name, vector<string> flashggCats_, int cat, int bestFitPdf=-1){
+  /* Plot several Pdfs vs data, without ratio plot, (used for the "truth") */
   
   int color[7] = {kBlue,kRed,kMagenta,kGreen+1,kOrange+7,kAzure+10,kBlack};
   TCanvas *canv = new TCanvas();
@@ -748,6 +751,8 @@ int main(int argc, char* argv[]){
           //else{ ext = "13TeV"; } //FIXME 
           else{ ext = Form("%s_13TeV",year_.c_str()); }
         }
+
+  std::cout << "[INFO] Number of categories to process: " << ncats << std::endl;
   for (int cat=startingCategory; cat<ncats; cat++){
 
     map<string,int> choices;
@@ -774,23 +779,17 @@ int main(int argc, char* argv[]){
 
     mass->setBins(nBinsForMass);
     RooDataSet *data;
-    //  RooDataHist thisdataBinned(Form("roohist_data_mass_cat%d",cat),"data",*mass,*dataFull);
-    //  RooDataSet *data = (RooDataSet*)&thisdataBinned;
     string thisdataBinned_name;
 
     if ( isFlashgg_){
       thisdataBinned_name =Form("roohist_data_mass_%s",flashggCats_[cat].c_str());
-      //  RooDataHist thisdataBinned(Form("roohist_data_mass_cat%d",cat),"data",*mass,*dataFull);
-      //  data = (RooDataSet*)&thisdataBinned;
-      //    std::cout << "debug " << thisdataBinned.GetName() << std::endl;
-
-      //RooDataSet *data = (RooDataSet*)dataFull;
     } else {
       thisdataBinned_name= Form("roohist_data_mass_cat%d",cat);
-      //RooDataSet *data = (RooDataSet*)dataFull;
     }
     RooDataHist thisdataBinned(thisdataBinned_name.c_str(),"data",*mass,*dataFull);
-    data = (RooDataSet*)&thisdataBinned;
+    data = (RooDataSet*)&thisdataBinned; 
+    // both "data" and "thisdataBinned" are binned (number of bins is given by "mass" bins) 
+    // "dataFull" is unbinned
 
     RooArgList storedPdfs("store");
 
@@ -877,6 +876,7 @@ int main(int argc, char* argv[]){
             order++;
           }
           else {
+            // Fit and chi-square calculation is repeated
             //RooFitResult *fitRes;
             int fitStatus=0;
             runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
@@ -885,7 +885,7 @@ int main(int argc, char* argv[]){
             double myNll = 2.*thisNll;
             chi2 = 2.*(prevNll-thisNll);
             if (chi2<0. && order>1) chi2=0.;
-            prob = TMath::Prob(chi2,order-prev_order);
+            prob = TMath::Prob(chi2,order-prev_order); 
 
             cout << "[INFO] \t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
             prevNll=thisNll;
@@ -913,12 +913,11 @@ int main(int argc, char* argv[]){
                 }
               }
             }
-
             prev_order=order;
             prev_pdf=bkgPdf;
             order++;
           }
-        }
+        } // end while
 
         fprintf(resFile,"%15s & %d & %5.2f & %5.2f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
         choices_envelope.insert(pair<string,std::vector<int> >(*funcType,pdforders));
@@ -933,8 +932,6 @@ int main(int argc, char* argv[]){
     plot(mass,pdfs,data,Form("%s/truths_cat%d",outDir.c_str(),(cat+catOffset)),flashggCats_,cat);
 
     if (saveMultiPdf){
-
-
       // Put selectedModels into a MultiPdf
       string catindexname;
       string catname;
@@ -980,25 +977,25 @@ int main(int argc, char* argv[]){
     outputfile->Close();  
   }
 
-    FILE *dfile = fopen(datfile.c_str(),"w");
-    cout << "[RESULT] Recommended options" << endl;
+  FILE *dfile = fopen(datfile.c_str(),"w");
+  cout << "[RESULT] Recommended options" << endl;
 
-    for (int cat=startingCategory; cat<ncats; cat++){
-      cout << "Cat " << cat << endl;
-      fprintf(dfile,"cat=%d\n",(cat+catOffset)); 
-      for (map<string,int>::iterator it=choices_vec[cat-startingCategory].begin(); it!=choices_vec[cat-startingCategory].end(); it++){
-        cout << "\t" << it->first << " - " << it->second << endl;
-        fprintf(dfile,"truth=%s:%d:%s%d\n",it->first.c_str(),it->second,namingMap[it->first].c_str(),it->second);
-      }
-      for (map<string,std::vector<int> >::iterator it=choices_envelope_vec[cat-startingCategory].begin(); it!=choices_envelope_vec[cat-startingCategory].end(); it++){
-        std::vector<int> ords = it->second;
-        for (std::vector<int>::iterator ordit=ords.begin(); ordit!=ords.end(); ordit++){
-          fprintf(dfile,"paul=%s:%d:%s%d\n",it->first.c_str(),*ordit,namingMap[it->first].c_str(),*ordit);
-        }
-      }
-      fprintf(dfile,"\n");
+  for (int cat=startingCategory; cat<ncats; cat++){
+    cout << "Cat " << cat << endl;
+    fprintf(dfile,"cat=%d\n",(cat+catOffset)); 
+    for (map<string,int>::iterator it=choices_vec[cat-startingCategory].begin(); it!=choices_vec[cat-startingCategory].end(); it++){
+      cout << "\t" << it->first << " - " << it->second << endl;
+      fprintf(dfile,"truth=%s:%d:%s%d\n",it->first.c_str(),it->second,namingMap[it->first].c_str(),it->second);
     }
-    inFile->Close();
-
-    return 0;
+    for (map<string,std::vector<int> >::iterator it=choices_envelope_vec[cat-startingCategory].begin(); it!=choices_envelope_vec[cat-startingCategory].end(); it++){
+      std::vector<int> ords = it->second;
+      for (std::vector<int>::iterator ordit=ords.begin(); ordit!=ords.end(); ordit++){
+        fprintf(dfile,"paul=%s:%d:%s%d\n",it->first.c_str(),*ordit,namingMap[it->first].c_str(),*ordit);
+      }
+    }
+    fprintf(dfile,"\n");
   }
+  inFile->Close();
+
+  return 0;
+}
