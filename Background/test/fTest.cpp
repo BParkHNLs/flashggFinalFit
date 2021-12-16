@@ -56,12 +56,12 @@ namespace po = program_options;
 bool BLIND = false;
 bool runFtestCheckWithToys=false;
 
-// for blind=true, still some hard-coded values in plot() functions
+// for blind=true
 int mass = 3.0;
 int sigma = 0.025;
-int mgg_low  = mass-10*sigma;
-int mgg_high = mass+10*sigma;
-int mgg_low_unblind = mass - 2*sigma;
+int mgg_low  = mass - 10*sigma;
+int mgg_high = mass + 10*sigma;
+int mgg_low_unblind =  mass - 2*sigma;
 int mgg_high_unblind = mass + 2*sigma;
 int nBinsForFit  = 320; // kept baseline values for Hgg 
 int nBinsForPlot = 80;  // ""
