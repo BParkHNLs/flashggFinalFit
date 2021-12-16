@@ -81,15 +81,14 @@ RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char
 void runFit(RooAbsPdf *pdf, RooDataSet *data, double *NLL, int *stat_t, int MaxTries){
 
   int ntries=0;
-    RooArgSet *params_test = pdf->getParameters((const RooArgSet*)(0));
+  RooArgSet *params_test = pdf->getParameters((const RooArgSet*)(0));
   //params_test->Print("v");
   int stat=1;
   double minnll=10e8;
   while (stat!=0){
     if (ntries>=MaxTries) break;
-    RooFitResult *fitTest = pdf->fitTo(*data,RooFit::Save(1)
-    ,RooFit::Minimizer("Minuit2","minimize"),RooFit::SumW2Error(kTRUE)); //FIXME
-          stat = fitTest->status();
+    RooFitResult *fitTest = pdf->fitTo(*data,RooFit::Save(1),RooFit::Minimizer("Minuit2","minimize"),RooFit::SumW2Error(kTRUE)); //FIXME
+    stat = fitTest->status();
     minnll = fitTest->minNll();
     if (stat!=0) params_test->assignValueOnly(fitTest->randomizePars());
     ntries++; 
@@ -119,7 +118,7 @@ double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *
   RooArgSet preParams_test;
   params_test->snapshot(preParams_test);
  
-  int ntoys =5000;
+  int ntoys = 5000;
   TCanvas *can = new TCanvas();
   can->SetLogy();
   TH1F toyhist(Form("toys_fTest_%s.pdf",pdfNull->GetName()),";Chi2;",60,-2,10);
@@ -133,58 +132,59 @@ double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *
   int ipoint=0;
 
   for (int b=0;b<toyhist.GetNbinsX();b++){
-  double x = toyhist.GetBinCenter(b+1);
-  if (x>0){
-    gChi2->SetPoint(ipoint,x,(ROOT::Math::chisquared_pdf(x,ndof)));
-    ipoint++;
-  }
+    double x = toyhist.GetBinCenter(b+1);
+    if (x>0){
+      gChi2->SetPoint(ipoint,x,(ROOT::Math::chisquared_pdf(x,ndof)));
+      ipoint++;
+    }
   }
   int npass =0; int nsuccesst =0;
   mass->setBins(nBinsForMass);
   for (int itoy = 0 ; itoy < ntoys ; itoy++){
 
-        params_null->assignValueOnly(preParams_null);
-        params_test->assignValueOnly(preParams_test);
+    params_null->assignValueOnly(preParams_null);
+    params_test->assignValueOnly(preParams_test);
     RooDataHist *binnedtoy = pdfNull->generateBinned(RooArgSet(*mass),ndata,0,1);
 
-  int stat_n=1;
-        int stat_t=1;
-  int ntries = 0;
-  double nllNull,nllTest;
-  // Iterate on the fit 
-  int MaxTries = 2;
-  while (stat_n!=0){
-    if (ntries>=MaxTries) break;
-    RooFitResult *fitNull = pdfNull->fitTo(*binnedtoy,RooFit::Save(1),RooFit::Strategy(1),RooFit::SumW2Error(kTRUE) //FIXME
-    ,RooFit::Minimizer("Minuit2","minimize"),RooFit::Minos(0),RooFit::Hesse(0),RooFit::PrintLevel(-1));
-    //,RooFit::Optimize(0));
+    int stat_n=1;
+    int stat_t=1;
+    int ntries = 0;
+    double nllNull,nllTest;
+    // Iterate on the fit 
+    int MaxTries = 2;
+    while (stat_n!=0){
+      if (ntries>=MaxTries) break;
+      RooFitResult *fitNull = pdfNull->fitTo(*binnedtoy,RooFit::Save(1),RooFit::Strategy(1),RooFit::SumW2Error(kTRUE) //FIXME
+                                              ,RooFit::Minimizer("Minuit2","minimize"),RooFit::Minos(0),RooFit::Hesse(0),RooFit::PrintLevel(-1));
+      //,RooFit::Optimize(0));
 
-    nllNull = fitNull->minNll();
-          stat_n = fitNull->status();
-    if (stat_n!=0) params_null->assignValueOnly(fitNullData->randomizePars());
-    ntries++; 
-  }
+      nllNull = fitNull->minNll();
+      stat_n = fitNull->status();
+      if (stat_n!=0) params_null->assignValueOnly(fitNullData->randomizePars());
+      ntries++; 
+    }
   
-  ntries = 0;
-  while (stat_t!=0){
-    if (ntries>=MaxTries) break;
-    RooFitResult *fitTest = pdfTest->fitTo(*binnedtoy,RooFit::Save(1),RooFit::Strategy(1),RooFit::SumW2Error(kTRUE) //FIXME
-    ,RooFit::Minimizer("Minuit2","minimize"),RooFit::Minos(0),RooFit::Hesse(0),RooFit::PrintLevel(-1));
-    nllTest = fitTest->minNll();
-          stat_t = fitTest->status();
-    if (stat_t!=0) params_test->assignValueOnly(fitTestData->randomizePars()); 
-    ntries++; 
-  }
+    ntries = 0;
+    while (stat_t!=0){
+      if (ntries>=MaxTries) break;
+      RooFitResult *fitTest = pdfTest->fitTo(*binnedtoy,RooFit::Save(1),RooFit::Strategy(1),RooFit::SumW2Error(kTRUE) //FIXME
+                                             ,RooFit::Minimizer("Minuit2","minimize"),RooFit::Minos(0),RooFit::Hesse(0),RooFit::PrintLevel(-1));
+      nllTest = fitTest->minNll();
+      stat_t = fitTest->status();
+      if (stat_t!=0) params_test->assignValueOnly(fitTestData->randomizePars()); 
+      ntries++; 
+    }
        
-  toyhistStatN.Fill(stat_n);
-  toyhistStatT.Fill(stat_t);
+    toyhistStatN.Fill(stat_n);
+    toyhistStatT.Fill(stat_t);
 
-        if (stat_t !=0 || stat_n !=0) continue;
-  nsuccesst++;
-  double chi2_t = 2*(nllNull-nllTest);
-  if (chi2_t >= chi2) npass++;
+    if (stat_t !=0 || stat_n !=0) continue;
+    nsuccesst++;
+    double chi2_t = 2*(nllNull-nllTest);
+    if (chi2_t >= chi2) npass++;
         toyhist.Fill(chi2_t);
-  }
+
+  } // end loop over toys
 
   double prob=0;
   if (nsuccesst!=0)  prob = (double)npass / nsuccesst;
@@ -198,6 +198,7 @@ double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *
   lat->SetNDC();
   lat->SetTextFont(42);
   lat->DrawLatex(0.1,0.91,Form("Prob (asymptotic) = %.4f (%.4f)",prob,prob_asym));
+  std::cout << "debug get probability f test: " << name.c_str() << std::endl; 
   can->SaveAs(name.c_str());
 
   TCanvas *stas =new TCanvas();
@@ -659,13 +660,11 @@ int main(int argc, char* argv[]){
   
   int startingCategory=0;
   if (singleCategory >-1){
-  ncats=singleCategory+1;  
-  startingCategory=singleCategory;
+    ncats=singleCategory+1;  
+    startingCategory=singleCategory;
   }
   if (isFlashgg_==1){
-  
-  ncats= flashggCats_.size();
-
+    ncats= flashggCats_.size();
   }
 
   if(verbose) std::cout << "[INFO] SaveMultiPdf? " << saveMultiPdf << std::endl;
@@ -749,9 +748,6 @@ int main(int argc, char* argv[]){
           //else{ ext = "13TeV"; } //FIXME 
           else{ ext = Form("%s_13TeV",year_.c_str()); }
         }
-  //if (isFlashgg_) ext = "13TeV";
-        //FIXME trying to remove duplicated names for 2016+2017 combination
-  //if (isFlashgg_) ext = Form("13TeV_%d",year_);
   for (int cat=startingCategory; cat<ncats; cat++){
 
     map<string,int> choices;
@@ -768,17 +764,6 @@ int main(int argc, char* argv[]){
     RooDataSet *dataFull0;
     if (isData_) {
     dataFull = (RooDataSet*)inWS->data(Form("Data_13TeV_%s",catname.c_str()));
-    /*dataFull= (RooDataSet*) dataFull0->emptyClone();
-    for (int i =0 ; i < dataFull0->numEntries() ; i++){
-    double m = dataFull0->get(i)->getRealValue("CMS_hgg_mass");
-    //if (m <(mgg_low+0.01) or m > (mgg_high-0.01)) 
-
-    if (m==mgg_low){
-    std::cout << "dataset mass m="<< m << std::endl;
-    continue;
-    }
-    dataFull->add(*dataFull0->get(),1.0);
-    }*/
     if (verbose) std::cout << "[INFO] opened data for  "  << Form("Data_%s",catname.c_str()) <<" - " << dataFull <<std::endl;
     }
     else 
@@ -827,7 +812,6 @@ int main(int argc, char* argv[]){
       std::vector<int> pdforders;
 
       int counter =0;
-      //  while (prob<0.05){
       while (prob<0.05 && order < 7){ //FIXME
         RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",(cat+catOffset),ext.c_str()));
         if (!bkgPdf){
@@ -839,7 +823,7 @@ int main(int argc, char* argv[]){
           //RooFitResult *fitRes = bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
           int fitStatus = 0;
           //thisNll = fitRes->minNll();
-        bkgPdf->Print();
+          bkgPdf->Print();
           runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
           if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
        
@@ -865,7 +849,7 @@ int main(int argc, char* argv[]){
           order++;
         }
         counter++;
-      }
+      } // end condition for performing f-test
 
       fprintf(resFile,"%15s & %d & %5.2f & %5.2f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
       choices.insert(pair<string,int>(*funcType,cache_order));
@@ -939,7 +923,7 @@ int main(int argc, char* argv[]){
         fprintf(resFile,"%15s & %d & %5.2f & %5.2f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
         choices_envelope.insert(pair<string,std::vector<int> >(*funcType,pdforders));
       }
-    }
+    } // end loop over families
 
     fprintf(resFile,"\\hline\n");
     choices_vec.push_back(choices);
@@ -989,12 +973,12 @@ int main(int argc, char* argv[]){
 
     }
 
-    }
-    if (saveMultiPdf){
-      outputfile->cd();
-      outputws->Write();
-      outputfile->Close();  
-    }
+  }
+  if (saveMultiPdf){
+    outputfile->cd();
+    outputws->Write();
+    outputfile->Close();  
+  }
 
     FILE *dfile = fopen(datfile.c_str(),"w");
     cout << "[RESULT] Recommended options" << endl;
