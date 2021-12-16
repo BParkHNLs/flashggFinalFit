@@ -782,9 +782,9 @@ int main(int argc, char* argv[]){
     string thisdataBinned_name;
 
     if ( isFlashgg_){
-      thisdataBinned_name =Form("roohist_data_mass_%s",flashggCats_[cat].c_str());
+      thisdataBinned_name =Form("CAT_roohist_data_mass_%s",flashggCats_[cat].c_str());
     } else {
-      thisdataBinned_name= Form("roohist_data_mass_cat%d",cat);
+      thisdataBinned_name= Form("CAT_roohist_data_mass_cat%d",cat);
     }
     RooDataHist thisdataBinned(thisdataBinned_name.c_str(),"data",*mass,*dataFull);
     data = (RooDataSet*)&thisdataBinned; 
