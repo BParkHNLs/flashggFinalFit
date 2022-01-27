@@ -57,13 +57,14 @@ bool BLIND = false;
 bool runFtestCheckWithToys=false;
 
 // for blind=true
-int mass = 3.0;
+// THESE VALUES WILL HAVE TO BE CONFIGURED FROM OUTSIDE
+int mass = 2.625;
 int sigma = 0.025;
-int mgg_low  = mass - 10*sigma;
-int mgg_high = mass + 10*sigma;
+int mgg_low  = mass - 5*sigma;
+int mgg_high = mass + 5*sigma;
 int mgg_low_unblind =  mass - 2*sigma;
 int mgg_high_unblind = mass + 2*sigma;
-int nBinsForFit  = 320; // kept baseline values for Hgg 
+int nBinsForFit  = 100; // kept baseline values for Hgg 
 int nBinsForPlot = 80;  // ""
 //TODO: finish implementation of ratio plot in MultiPdf Plot
 
@@ -358,7 +359,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
   /* Plot MultiPdf vs data, wih dummy ratio plot (why?) */
   
   int color[7] = {kBlue,kRed,kMagenta,kGreen+1,kOrange+7,kAzure+10,kBlack};
-  TLegend *leg = new TLegend(0.5,0.55,0.92,0.88);
+  TLegend *leg = new TLegend(0.6,0.65,0.95,0.95);
   leg->SetFillColor(0);
   leg->SetLineColor(1);
   RooPlot *plot = mass->frame();
@@ -595,6 +596,9 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
   }
   cat->setIndex(best_index);
   params->assignValueOnly(snap);
+
+  std::cout << "[INFO] Best fit parameters " << std::endl;
+  params->Print("V");
   
   if (!silent) {
     std::cout << "[INFO] Best fit Function -- " << bkg->getCurrentPdf()->GetName() << " " << cat->getIndex() <<std::endl;
@@ -622,7 +626,7 @@ int main(int argc, char* argv[]){
   string outDir;
   string outfilename;
   bool is2011=false;
-  bool verbose=false;
+  bool verbose=true;
   bool saveMultiPdf=false;
   int isFlashgg_ =1;
   string flashggCatsStr_;
@@ -743,7 +747,7 @@ int main(int argc, char* argv[]){
   vector<map<string,RooAbsPdf*> > pdfs_vec;
 
   PdfModelBuilder pdfsModel;
-  RooRealVar *mass = (RooRealVar*)inWS->var("CMS_hgg_mass");
+  RooRealVar *mass = (RooRealVar*)inWS->var("hnl_mass"); // Let's just call it hnl_mass
   std:: cout << "[INFO] Got mass from ws " << mass << std::endl;
   pdfsModel.setObsVar(mass);
   double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)
@@ -771,6 +775,9 @@ int main(int argc, char* argv[]){
     } else {
       catname = Form("cat%d",cat);
     }
+
+    // Option 1: Use as input an unbinned RooDataSet and bin it
+    /*
     RooDataSet *dataFull;
     RooDataSet *dataFull0;
     if (isData_) {
@@ -781,7 +788,6 @@ int main(int argc, char* argv[]){
     {dataFull = (RooDataSet*)inWS->data(Form("data_mass_%s",catname.c_str()));
     if (verbose) std::cout << "[INFO] opened data for  "  << Form("data_mass_%s",catname.c_str()) <<" - " << dataFull <<std::endl;
     }
-
 
     mass->setBins(nBinsForFit);
     RooDataSet *data;
@@ -796,6 +802,12 @@ int main(int argc, char* argv[]){
     data = (RooDataSet*)&thisdataBinned; 
     // both "data" and "thisdataBinned" are binned (number of bins is given by "mass" bins) 
     // "dataFull" is unbinned
+    */
+
+    // Option 2 (equivalent): Use as input a binned RooDataHist as is
+    string data_name = Form("CAT_roohist_data_mass_%s",flashggCats_[cat].c_str()); 
+    RooDataHist *thisdataBinned = (RooDataHist*)inWS->data(Form("Data_13TeV_%s",catname.c_str()));
+    RooDataSet  *data       = (RooDataSet*)thisdataBinned;
 
     RooArgList storedPdfs("store");
 
@@ -963,13 +975,13 @@ int main(int argc, char* argv[]){
       std::cout << "// ------------------------------------------------------------------------- //" <<std::endl;
 
       mass->setBins(nBinsForFit);
-      RooDataHist dataBinned(Form("roohist_data_mass_%s",catname.c_str()),"data",*mass,*dataFull);
+      //RooDataHist dataBinned(Form("roohist_data_mass_%s",catname.c_str()),"data",*mass,*dataFull);
 
       // Save it (also a binned version of the dataset
       outputws->import(*pdf);
       outputws->import(nBackground);
       outputws->import(catIndex);
-      outputws->import(dataBinned);
+      //outputws->import(dataBinned);
       outputws->import(*data);
       plot(mass,pdf,&catIndex,data,Form("%s/multipdf_%s",outDir.c_str(),catname.c_str()),flashggCats_,cat,bestFitPdfIndex);
 
