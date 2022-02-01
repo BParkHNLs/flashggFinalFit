@@ -58,15 +58,14 @@ bool runFtestCheckWithToys=false;
 
 // for blind=true
 // THESE VALUES WILL HAVE TO BE CONFIGURED FROM OUTSIDE
-int mass = 2.625;
-int sigma = 0.025;
-int mgg_low  = mass - 5*sigma;
-int mgg_high = mass + 5*sigma;
-int mgg_low_unblind =  mass - 2*sigma;
-int mgg_high_unblind = mass + 2*sigma;
+double m = 2.75;
+double sigma = 0.025;
+double mgg_low  = m - 5*sigma;
+double mgg_high = m + 5*sigma;
+double mgg_low_unblind =  m - 2*sigma;
+double mgg_high_unblind = m + 2*sigma;
 int nBinsForFit  = 100; // kept baseline values for Hgg 
-int nBinsForPlot = 80;  // ""
-//TODO: finish implementation of ratio plot in MultiPdf Plot
+int nBinsForPlot = 100;  // ""
 
 RooRealVar *intLumi_ = new RooRealVar("IntLumi","hacked int lumi", 1000.);
 
@@ -315,7 +314,7 @@ double getGoodnessOfFit(RooRealVar *mass, RooAbsPdf *mpdf, RooDataSet *data, std
 }
 
 void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector<string> flashggCats_, int status, double *prob){
-  /* Plot single pdf vs data */
+  /* Plot single pdf vs data, with pulls */
     
   // Chi2 taken from full range fit
   RooPlot *plot_chi2 = mass->frame();
@@ -336,19 +335,70 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
   }
   else data->plotOn(plot,Binning(nBinsForPlot));
 
-  // data->plotOn(plot,Binning(nBinsForPlot));
   TCanvas *canv = new TCanvas();
+  canv->Divide(1,2);
+  canv->cd(1);
+  gPad->SetLeftMargin(0.15);
+  gPad->SetBottomMargin(0.10);
+  gPad->SetPad(0.01,0.2,0.99,0.99);
+  plot->GetXaxis()->SetTitleSize(0.04);
+  plot->GetXaxis()->SetTitle("m_{#mu#pi} (GeV)");
+  plot->GetYaxis()->SetTitleSize(0.04);;
+  //plot->GetYaxis()->SetTitle("Entries");
+  plot->GetYaxis()->SetTitleOffset(1.35);
+
   pdf->plotOn(plot);//,RooFit::NormRange("fitdata_1,fitdata_2"));
-  pdf->paramOn(plot,RooFit::Layout(0.34,0.96,0.89),RooFit::Format("NEA",AutoPrecision(1)));
+  pdf->paramOn(plot,RooFit::Layout(0.34,0.85,0.89),RooFit::Format("NEA",AutoPrecision(1)));
+  plot->getAttText()->SetTextSize(0.025);
   if (BLIND) plot->SetMinimum(0.0001);
   plot->SetTitle("");
   plot->Draw();
   TLatex *lat = new TLatex();
   lat->SetNDC();
   lat->SetTextFont(42);
-  lat->DrawLatex(0.1,0.92,Form("#chi^{2} = %.3f, Prob = %.2f, Fit Status = %d ",chi2*(nBinsForFit-np),*prob,status));
-  canv->SaveAs(name.c_str());
-   
+  lat->SetTextSize(0.034);
+  lat->DrawLatex(0.15,0.94,Form("#chi^{2}/ndof = %.3f, Prob = %.2f, Fit Status = %d ",chi2,*prob,status));
+
+  TLatex *lab = new TLatex();
+  lab->SetNDC();
+  lab->SetTextFont(42);
+  lab->SetTextSize(0.034);
+  std::string delimiter = "/";
+  size_t pos = 0;
+  std::string s = name;
+  std::string token;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+    token = s.substr(0, pos);
+    //std::cout << token << std::endl;
+    s.erase(0, pos + delimiter.length());
+  }
+  //delimiter = ".";
+  //token = s.substr(0, s.find(delimiter));
+  //std::cout << s << std::endl;
+  lab->DrawLatex(0.55,0.25,s.c_str());
+
+  // pulls
+  canv->cd(2);
+  gPad->SetLeftMargin(0.15);
+  gPad->SetPad(0.01,0.01,0.99,0.2);
+  gPad->SetGridy();
+  RooHist* hpull = plot->pullHist();
+  RooPlot *plot2 = mass->frame();
+  plot2->GetYaxis()->SetNdivisions(504);
+  plot2->GetYaxis()->SetLabelSize(0.17);
+  plot2->GetYaxis()->SetTitleSize(0.17);
+  plot2->GetYaxis()->SetTitleOffset(0.24);
+  //plot2->GetYaxis()->SetRangeUser(-3.0,3.0);
+  plot2->SetMinimum(-3.);
+  plot2->SetMaximum(3.);
+  plot2->GetYaxis()->SetTitle("Pulls") ;
+  plot2->GetXaxis()->SetTitle("");
+  plot2->GetXaxis()->SetLabelOffset(5);
+  plot2->addPlotable(hpull,"P"); 
+  plot2->Draw();
+
+  canv->SaveAs(Form("%s.pdf",name.c_str()));
+  canv->SaveAs(Form("%s.png",name.c_str()));
   //plot_chi2->Draw();
   //canv->SaveAs((name+"debug").c_str());
 
@@ -375,14 +425,15 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
   TCanvas *canv = new TCanvas();
   ///start extra bit for ratio plot///
   RooHist *plotdata = (RooHist*)plot->getObject(plot->numItems()-1);
-  bool doRatioPlot_=1;
-  TPad *pad1 = new TPad("pad1","pad1",0,0.25,1,1);
-  TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.35);
+  //bool doRatioPlot_=1;
+  //TPad *pad1 = new TPad("pad1","pad1",0,0.25,1,1);
+  TPad *pad1 = new TPad("pad1","pad1",0,0,1,1);
+  //TPad *pad2 = new TPad("pad2","pad2",0,0,1,0.35);
   pad1->SetBottomMargin(0.18);
-  pad2->SetTopMargin(0.00001);
-  pad2->SetBottomMargin(0.25);
+  //pad2->SetTopMargin(0.00001);
+  //pad2->SetBottomMargin(0.25);
   pad1->Draw();
-  pad2->Draw();
+  //pad2->Draw();
   pad1->cd();
   // enf extra bit for ratio plot///
 
@@ -411,6 +462,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
     leg->AddEntry(pdfLeg,Form("%s%s",pdfs->getCurrentPdf()->GetName(),ext.c_str()),"L");
   }
   plot->SetTitle(Form("Category %s",flashggCats_[cat].c_str()));
+  plot->GetXaxis()->SetTitle("m_{#mu#pi} (GeV)");
   if (BLIND) plot->SetMinimum(0.0001);
   plot->Draw();
   leg->Draw("same");
@@ -443,23 +495,23 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
     hdatasub->SetPointError(point,0.,0.,errlow,errhi );
     point++;
   } 
-  pad2->cd();
-  TH1 *hdummy = new TH1D("hdummyweight","",nBinsForPlot,mgg_low,mgg_high);
-  hdummy->SetMaximum(hdatasub->GetHistogram()->GetMaximum()+1);
-  hdummy->SetMinimum(hdatasub->GetHistogram()->GetMinimum()-1);
-  hdummy->GetYaxis()->SetTitle("data - best fit PDF");
-  hdummy->GetYaxis()->SetTitleSize(0.12);
-  hdummy->GetXaxis()->SetTitle("m_{#gamma#gamma} (GeV)");
-  hdummy->GetXaxis()->SetTitleSize(0.12);
-  hdummy->Draw("HIST");
-  hdummy->GetYaxis()->SetNdivisions(808);
-
-  TLine *line3 = new TLine(mgg_low,0.,mgg_high,0.);
-  line3->SetLineColor(bestcol);
-  //line3->SetLineStyle(kDashed);
-  line3->SetLineWidth(5.0);
-  line3->Draw();
-  hdatasub->Draw("PESAME");
+//  pad2->cd();
+//  TH1 *hdummy = new TH1D("hdummyweight","",nBinsForPlot,mgg_low,mgg_high);
+//  hdummy->SetMaximum(hdatasub->GetHistogram()->GetMaximum()+1);
+//  hdummy->SetMinimum(hdatasub->GetHistogram()->GetMinimum()-1);
+//  hdummy->GetYaxis()->SetTitle("data - best fit PDF");
+//  hdummy->GetYaxis()->SetTitleSize(0.12);
+//  hdummy->GetXaxis()->SetTitle("m_{#gamma#gamma} (GeV)");
+//  hdummy->GetXaxis()->SetTitleSize(0.12);
+//  hdummy->Draw("HIST");
+//  hdummy->GetYaxis()->SetNdivisions(808);
+//
+//  TLine *line3 = new TLine(mgg_low,0.,mgg_high,0.);
+//  line3->SetLineColor(bestcol);
+//  //line3->SetLineStyle(kDashed);
+//  line3->SetLineWidth(5.0);
+//  line3->Draw();
+//  hdatasub->Draw("PESAME");
   // enf extra bit for ratio plot///
   canv->SaveAs(Form("%s.pdf",name.c_str()));
   canv->SaveAs(Form("%s.png",name.c_str()));
@@ -626,7 +678,7 @@ int main(int argc, char* argv[]){
   string outDir;
   string outfilename;
   bool is2011=false;
-  bool verbose=true;
+  bool verbose=false;
   bool saveMultiPdf=false;
   int isFlashgg_ =1;
   string flashggCatsStr_;
@@ -841,7 +893,7 @@ int main(int argc, char* argv[]){
           int fitStatus = 0;
           //thisNll = fitRes->minNll();
           bkgPdf->Print();
-          runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+          runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/7);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
           if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
        
           chi2 = 2.*(prevNll-thisNll);
@@ -855,7 +907,7 @@ int main(int argc, char* argv[]){
           }
           double gofProb=0;
           // otherwise we get it later ...
-          if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d.pdf",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
+          if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
           cout << "[INFO]\t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
           //fprintf(resFile,"%15s && %d && %10.2f && %10.2f && %10.2f \\\\\n",funcType->c_str(),order,thisNll,chi2,prob);
           prevNll=thisNll;
@@ -897,7 +949,7 @@ int main(int argc, char* argv[]){
             // Fit and chi-square calculation is repeated
             //RooFitResult *fitRes;
             int fitStatus=0;
-            runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/3);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+            runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/7);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
             //thisNll = fitRes->minNll();
             if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
             double myNll = 2.*thisNll;
@@ -912,7 +964,7 @@ int main(int argc, char* argv[]){
 
             // Calculate goodness of fit for the thing to be included (will use toys for lowstats)!
             double gofProb =0; 
-            plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d.pdf",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
+            plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
 
             if ((prob < upperEnvThreshold) ) { // Looser requirements for the envelope
 
