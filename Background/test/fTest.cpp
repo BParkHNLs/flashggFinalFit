@@ -57,13 +57,15 @@ bool BLIND = false;
 bool runFtestCheckWithToys=false;
 
 // for blind=true
-// THESE VALUES WILL HAVE TO BE CONFIGURED FROM OUTSIDE
-double m = 2.75;
-double sigma = 0.025;
-double mgg_low  = m - 5*sigma;
-double mgg_high = m + 5*sigma;
-double mgg_low_unblind =  m - 2*sigma;
-double mgg_high_unblind = m + 2*sigma;
+// these values are configured in main
+float mN = 2.75;
+float sigma = 0.025;
+int nsigma = 5;
+float mN_low  = 2.625;
+float mN_high = 2.875;
+float mN_low_unblind = 2.7;
+float mN_high_unblind = 2.8;
+// not configured in main
 int nBinsForFit  = 100; // kept baseline values for Hgg 
 int nBinsForPlot = 100;  // ""
 
@@ -326,8 +328,8 @@ void plot(RooRealVar *mass, RooAbsPdf *pdf, RooDataSet *data, string name,vector
  
   *prob = getGoodnessOfFit(mass,pdf,data,name);
   RooPlot *plot = mass->frame();
-  mass->setRange("unblindReg_1",mgg_low,mgg_low_unblind);
-  mass->setRange("unblindReg_2",mgg_high_unblind,mgg_high);
+  mass->setRange("unblindReg_1",mN_low,mN_low_unblind);
+  mass->setRange("unblindReg_2",mN_high_unblind,mN_high);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_1"));
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_2"));
@@ -409,13 +411,13 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
   /* Plot MultiPdf vs data, wih dummy ratio plot (why?) */
   
   int color[7] = {kBlue,kRed,kMagenta,kGreen+1,kOrange+7,kAzure+10,kBlack};
-  TLegend *leg = new TLegend(0.6,0.65,0.95,0.95);
+  TLegend *leg = new TLegend(0.6,0.65,0.95,0.90);
   leg->SetFillColor(0);
   leg->SetLineColor(1);
   RooPlot *plot = mass->frame();
 
-  mass->setRange("unblindReg_1",mgg_low,mgg_low_unblind);
-  mass->setRange("unblindReg_2",mgg_high_unblind,mgg_high);
+  mass->setRange("unblindReg_1",mN_low,mN_low_unblind);
+  mass->setRange("unblindReg_2",mN_high_unblind,mN_high);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_1"));
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_2"));
@@ -454,12 +456,20 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
     TObject *pdfLeg = plot->getObject(int(plot->numItems()-1));
     std::string ext = "";
     if (bestFitPdf==icat) {
-    ext=" (Best Fit Pdf) ";
-    pdf= pdfs->getCurrentPdf();
-    nomBkgCurve = (RooCurve*)plot->getObject(plot->numItems()-1);
-    bestcol = col;
+      ext=" (Best Fit Pdf) ";
+      pdf= pdfs->getCurrentPdf();
+      nomBkgCurve = (RooCurve*)plot->getObject(plot->numItems()-1);
+      bestcol = col;
     }
-    leg->AddEntry(pdfLeg,Form("%s%s",pdfs->getCurrentPdf()->GetName(),ext.c_str()),"L");
+    string pdfName = pdfs->getCurrentPdf()->GetName(); 
+    std::string token;
+    std::string delimiter = "_";
+    size_t pos = 0;
+    while ((pos = pdfName.find(delimiter)) != std::string::npos) {
+      token = pdfName.substr(0, pos);
+      pdfName.erase(0, pos + delimiter.length());
+    }
+    leg->AddEntry(pdfLeg,Form("%s%s",pdfName.c_str(),ext.c_str()),"L");
   }
   plot->SetTitle(Form("Category %s",flashggCats_[cat].c_str()));
   plot->GetXaxis()->SetTitle("m_{#mu#pi} (GeV)");
@@ -468,7 +478,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
   leg->Draw("same");
   CMS_lumi( canv, 0, 0);
   ///start extra bit for ratio plot///
-  TH1D *hbplottmp = (TH1D*) pdf->createHistogram("hbplottmp",*mass,Binning(nBinsForPlot,mgg_low,mgg_high));
+  TH1D *hbplottmp = (TH1D*) pdf->createHistogram("hbplottmp",*mass,Binning(nBinsForPlot,mN_low,mN_high));
   hbplottmp->Scale(plotdata->Integral());
   hbplottmp->Draw("same");
   int npoints = plotdata->GetN();
@@ -481,7 +491,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
     plotdata->GetPoint(ipoint, xtmp,ytmp);
     double bkgval = nomBkgCurve->interpolate(xtmp);
     if (BLIND) {
-     if ((xtmp > mgg_low_unblind ) && ( xtmp < mgg_high_unblind) ) continue;
+     if ((xtmp > mN_low_unblind ) && ( xtmp < mN_high_unblind) ) continue;
     }
     //std::cout << "[INFO] plotdata->Integral() " <<  plotdata->Integral() << " ( bins " << npoints  << ") hbkgplots[i]->Integral() " << hbplottmp->Integral() << " (bins " << hbplottmp->GetNbinsX() << std::endl;
     double errhi = plotdata->GetErrorYhigh(ipoint);
@@ -496,7 +506,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
     point++;
   } 
 //  pad2->cd();
-//  TH1 *hdummy = new TH1D("hdummyweight","",nBinsForPlot,mgg_low,mgg_high);
+//  TH1 *hdummy = new TH1D("hdummyweight","",nBinsForPlot,mN_low,mN_high);
 //  hdummy->SetMaximum(hdatasub->GetHistogram()->GetMaximum()+1);
 //  hdummy->SetMinimum(hdatasub->GetHistogram()->GetMinimum()-1);
 //  hdummy->GetYaxis()->SetTitle("data - best fit PDF");
@@ -506,7 +516,7 @@ void plot(RooRealVar *mass, RooMultiPdf *pdfs, RooCategory *catIndex, RooDataSet
 //  hdummy->Draw("HIST");
 //  hdummy->GetYaxis()->SetNdivisions(808);
 //
-//  TLine *line3 = new TLine(mgg_low,0.,mgg_high,0.);
+//  TLine *line3 = new TLine(mN_low,0.,mN_high,0.);
 //  line3->SetLineColor(bestcol);
 //  //line3->SetLineStyle(kDashed);
 //  line3->SetLineWidth(5.0);
@@ -529,8 +539,8 @@ void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, strin
   leg->SetLineColor(0);
   RooPlot *plot = mass->frame();
 
-  mass->setRange("unblindReg_1",mgg_low,mgg_low_unblind);
-  mass->setRange("unblindReg_2",mgg_high_unblind,mgg_high);
+  mass->setRange("unblindReg_1",mN_low,mN_low_unblind);
+  mass->setRange("unblindReg_2",mN_high_unblind,mN_high);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_1"));
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_2"));
@@ -683,7 +693,7 @@ int main(int argc, char* argv[]){
   int isFlashgg_ =1;
   string flashggCatsStr_;
   vector<string> flashggCats_;
- bool isData_ =0;
+  bool isData_ =0;
 
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -703,6 +713,9 @@ int main(int argc, char* argv[]){
     ("flashggCats,f", po::value<string>(&flashggCatsStr_)->default_value("UntaggedTag_0,UntaggedTag_1,UntaggedTag_2,UntaggedTag_3,UntaggedTag_4,VBFTag_0,VBFTag_1,VBFTag_2,TTHHadronicTag,TTHLeptonicTag,VHHadronicTag,VHTightTag,VHLooseTag,VHEtTag"),                  "Flashgg category names to consider")
     ("year", po::value<string>(&year_)->default_value("2016"),                                  "Dataset year")
     ("catOffset", po::value<int>(&catOffset)->default_value(0),                                 "Category numbering scheme offset")
+    ("mN", po::value<float>(&mN)->default_value(2.75),                                          "Mass of the peak, for center of window")
+    ("sigma", po::value<float>(&sigma)->default_value(0.025),                                   "Sigma of the peak, for size of window")
+    ("nsigma", po::value<int>(&nsigma)->default_value(5),                                       "Sigma multiplier, for size of window")
     ("verbose,v",                                                                               "Run with more output")
   ;
   po::variables_map vm;
@@ -715,6 +728,13 @@ int main(int argc, char* argv[]){
 
   if (vm.count("verbose")) verbose=true;
   if (vm.count("runFtestCheckWithToys")) runFtestCheckWithToys=true;
+
+  std::cout << "DEBUG mN=" << mN << std::endl; 
+
+  mN_low  = mN - nsigma * sigma;
+  mN_high = mN + nsigma * sigma;
+  mN_low_unblind =  mN - 2 * sigma;
+  mN_high_unblind = mN + 2 * sigma;
 
   if (!verbose) {
     RooMsgService::instance().setGlobalKillBelow(RooFit::ERROR);
@@ -907,7 +927,7 @@ int main(int argc, char* argv[]){
           }
           double gofProb=0;
           // otherwise we get it later ...
-          if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
+          if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_%s",outDir.c_str(),funcType->c_str(),order,catname.c_str()),flashggCats_,fitStatus,&gofProb);
           cout << "[INFO]\t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
           //fprintf(resFile,"%15s && %d && %10.2f && %10.2f && %10.2f \\\\\n",funcType->c_str(),order,thisNll,chi2,prob);
           prevNll=thisNll;
@@ -964,7 +984,7 @@ int main(int argc, char* argv[]){
 
             // Calculate goodness of fit for the thing to be included (will use toys for lowstats)!
             double gofProb =0; 
-            plot(mass,bkgPdf,data,Form("%s/%s%d_cat%d",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)),flashggCats_,fitStatus,&gofProb);
+            plot(mass,bkgPdf,data,Form("%s/%s%d_%s",outDir.c_str(),funcType->c_str(),order,catname.c_str()),flashggCats_,fitStatus,&gofProb);
 
             if ((prob < upperEnvThreshold) ) { // Looser requirements for the envelope
 
@@ -999,7 +1019,7 @@ int main(int argc, char* argv[]){
     choices_envelope_vec.push_back(choices_envelope);
     pdfs_vec.push_back(pdfs);
 
-    plot(mass,pdfs,data,Form("%s/truths_cat%d",outDir.c_str(),(cat+catOffset)),flashggCats_,cat);
+    plot(mass,pdfs,data,Form("%s/truths_%s",outDir.c_str(),catname.c_str()),flashggCats_,cat);
 
     if (saveMultiPdf){
       // Put selectedModels into a MultiPdf
