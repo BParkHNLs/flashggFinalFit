@@ -308,8 +308,8 @@ double getGoodnessOfFit(RooRealVar *mass, RooAbsPdf *mpdf, RooDataSet *data, std
   } else {
     prob = TMath::Prob(chi2*(nBinsForFit-np),nBinsForFit-np);
   }
-  std::cout << "[INFO] Chi2 in Observed =  " << chi2*(nBinsForFit-np) << std::endl;
-  std::cout << "[INFO] p-value  =  " << prob << std::endl;
+  std::cout << "[INFO] GOF Chi2 in Observed =  " << chi2*(nBinsForFit-np) << std::endl;
+  std::cout << "[INFO] GOF p-value  =  " << prob << std::endl;
   delete pdf;
   return prob;
 
@@ -819,7 +819,8 @@ int main(int argc, char* argv[]){
   vector<map<string,RooAbsPdf*> > pdfs_vec;
 
   PdfModelBuilder pdfsModel;
-  RooRealVar *mass = (RooRealVar*)inWS->var("hnl_mass"); // Let's just call it hnl_mass
+  RooRealVar *mass = (RooRealVar*)inWS->var("hnl_mass"); //
+  //RooRealVar *mass = (RooRealVar*)inWS->var("CMS_hgg_mass"); //
   std:: cout << "[INFO] Got mass from ws " << mass << std::endl;
   pdfsModel.setObsVar(mass);
   double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)
@@ -893,6 +894,10 @@ int main(int argc, char* argv[]){
     for (vector<string>::iterator funcType=functionClasses.begin(); 
         funcType!=functionClasses.end(); funcType++){
 
+      std::cout << "======================================= " << std::endl;
+      std::cout << "====> FAMILY " << funcType->c_str() << std::endl;
+      std::cout << "======================================= " << std::endl;
+
       double thisNll=0.; double prevNll=0.; double chi2=0.; double prob=0.; 
       int order=1; int prev_order=0; int cache_order=0;
 
@@ -900,8 +905,11 @@ int main(int argc, char* argv[]){
       RooAbsPdf *cache_pdf=NULL;
       std::vector<int> pdforders;
 
+      std::cout << "===> F-TEST for Truth determination" << std::endl;
+
       int counter =0;
       while (prob<0.05 && order < 7){ //FIXME
+        cout << "==> " << *funcType << " " << order << endl;
         RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",(cat+catOffset),ext.c_str()));
         if (!bkgPdf){
           // assume this order is not allowed
@@ -909,10 +917,8 @@ int main(int argc, char* argv[]){
         }
         else {
 
-          //RooFitResult *fitRes = bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
+          //bkgPdf->Print();
           int fitStatus = 0;
-          //thisNll = fitRes->minNll();
-          bkgPdf->Print();
           runFit(bkgPdf,data,&thisNll,&fitStatus,/*max iterations*/7);//bkgPdf->fitTo(*data,Save(true),RooFit::Minimizer("Minuit2","minimize"));
           if (fitStatus!=0) std::cout << "[WARNING] Warning -- Fit status for " << bkgPdf->GetName() << " at " << fitStatus <<std::endl;
        
@@ -921,15 +927,15 @@ int main(int argc, char* argv[]){
           if (prev_pdf!=NULL){
             prob = getProbabilityFtest(chi2,order-prev_order,prev_pdf,bkgPdf,mass,data
                 ,Form("%s/Ftest_from_%s%d_cat%d.pdf",outDir.c_str(),funcType->c_str(),order,(cat+catOffset)));
-            std::cout << "[INFO]  F-test Prob(chi2>chi2(data)) == " << prob << std::endl;
+            std::cout << "[INFO] F-test Prob == " << prob << std::endl;
           } else {
             prob = 0;
           }
           double gofProb=0;
           // otherwise we get it later ...
           if (!saveMultiPdf) plot(mass,bkgPdf,data,Form("%s/%s%d_%s",outDir.c_str(),funcType->c_str(),order,catname.c_str()),flashggCats_,fitStatus,&gofProb);
-          cout << "[INFO]\t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
-          //fprintf(resFile,"%15s && %d && %10.2f && %10.2f && %10.2f \\\\\n",funcType->c_str(),order,thisNll,chi2,prob);
+          cout << "[INFO] function type, order, prevNLL, thisNLL, chi2, prob " << endl;
+          cout << "[INFO] " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
           prevNll=thisNll;
           cache_order=prev_order;
           cache_pdf=prev_pdf;
@@ -947,6 +953,7 @@ int main(int argc, char* argv[]){
       int truthOrder = cache_order;
 
       // Now run loop to determine functions inside envelope
+      std::cout << "===> F-TEST and GOF for ENVELOPE determination" << std::endl;
       if (saveMultiPdf){
         chi2=0.;
         thisNll=0.;
@@ -955,10 +962,10 @@ int main(int argc, char* argv[]){
         order=1;
         prev_order=0;
         cache_order=0;
-        std::cout << "[INFO] Determining Envelope Functions for Family " << *funcType << ", cat " << cat << std::endl;
         std::cout << "[INFO] Upper end Threshold for highest order function " << upperEnvThreshold <<std::endl;
 
         while (prob<upperEnvThreshold){
+          cout << "==> " << *funcType << " " << order << endl;
           RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("env_pdf_%d_%s",(cat+catOffset),ext.c_str()));
           if (!bkgPdf ){
             // assume this order is not allowed
@@ -977,7 +984,8 @@ int main(int argc, char* argv[]){
             if (chi2<0. && order>1) chi2=0.;
             prob = TMath::Prob(chi2,order-prev_order); 
 
-            cout << "[INFO] \t " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
+            cout << "[INFO] function type, order, prevNLL, thisNLL, chi2, prob " << endl;
+            cout << "[INFO] " << *funcType << " " << order << " " << prevNll << " " << thisNll << " " << chi2 << " " << prob << endl;
             prevNll=thisNll;
             cache_order=prev_order;
             cache_pdf=prev_pdf;

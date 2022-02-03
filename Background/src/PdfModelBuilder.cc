@@ -363,7 +363,6 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
     //exps->Print("v");
     RooAbsPdf *exp = new RooAddPdf(prefix.c_str(),prefix.c_str(),*exps,*fracs,true);
     //exp->Print("v");
-    cout << "--------------------------" << endl;
     return exp;
     //bkgPdfs.insert(pair<string,RooAbsPdf*>(exp->GetName(),exp));
 
