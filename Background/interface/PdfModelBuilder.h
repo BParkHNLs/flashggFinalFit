@@ -56,6 +56,7 @@ class PdfModelBuilder {
     void saveWorkspace(string filename);
 
     RooAbsPdf* getBernstein(string prefix, int order);
+    RooAbsPdf* getPolynomial(string prefix, int order);
     RooAbsPdf* getChebychev(string prefix, int order);
     RooAbsPdf* getPowerLaw(string prefix, int order);
     RooAbsPdf* getPowerLawSingle(string prefix, int order);
