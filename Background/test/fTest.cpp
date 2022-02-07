@@ -74,6 +74,7 @@ RooRealVar *intLumi_ = new RooRealVar("IntLumi","hacked int lumi", 1000.);
 TRandom3 *RandomGen = new TRandom3();
 
 RooAbsPdf* getPdf(PdfModelBuilder &pdfsModel, string type, int order, const char* ext=""){
+/* Construct the pdf model using the PdfModelBuilder */
   
   if (type=="Bernstein") return pdfsModel.getBernstein(Form("%s_bern%d",ext,order),order); 
   else if (type=="Exponential") return pdfsModel.getExponentialSingle(Form("%s_exp%d",ext,order),order); 
@@ -106,8 +107,9 @@ void runFit(RooAbsPdf *pdf, RooDataSet *data, double *NLL, int *stat_t, int MaxT
   *stat_t = stat;
   *NLL = minnll;
 }
+
 double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *pdfTest, RooRealVar *mass, RooDataSet *data, std::string name){
-/* Function name explains it all. Currently toys are not used and only simple TMath::Prob is used to calculate prob_F-test */
+/* Get probability of the f-test. Currently toys are not used and only simple TMath::Prob is used. */
  
   double prob_asym = TMath::Prob(chi2,ndof);
   if (!runFtestCheckWithToys) return prob_asym;
@@ -238,6 +240,8 @@ double getProbabilityFtest(double chi2, int ndof,RooAbsPdf *pdfNull, RooAbsPdf *
 }
 
 double getGoodnessOfFit(RooRealVar *mass, RooAbsPdf *mpdf, RooDataSet *data, std::string name){
+/* Get goodness of fit, based on chi-square, using binned dataset and fitted pdf 
+   use toys or chi-square distributions depending on avg number of events in bin */
 
   double prob;
   int ntoys = 500;
@@ -541,8 +545,10 @@ void transferMacros(TFile *inFile, TFile *outFile){
     }
   }
 }
-int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, bool silent=false){
 
+int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, bool silent=false){
+/* Get index of the best fit pdf (minimum NLL) among functions in the multipdf.
+   All fits are performed again. */
 
   double global_minNll = 1E10;
   int best_index = 0;
@@ -550,13 +556,14 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
     
   RooArgSet snap,clean;
   RooArgSet *params = bkg->getParameters((const RooArgSet*)0);
-  params->remove(*cat);
+  params->remove(*cat);  // pdf_index is RooCategory, removed from parameters
   params->snapshot(snap);
   params->snapshot(clean);
   if (!silent) {
     //params->Print("V");
   }
-  
+ 
+  // Uncomment to try to make converge a failed fit
   //bkg->setDirtyInhibit(1);
   //RooAbsReal *nllm = bkg->createNLL(*data);
   //RooMinimizer minim(*nllm);
@@ -579,7 +586,7 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
     //minim.minimize("Minuit2","minimize");
     double minNll=0; //(nllm->getVal())+bkg->getCorrection();
     int fitStatus=1;    
-    runFit(bkg->getCurrentPdf(),data,&minNll,&fitStatus,/*max iterations*/3);
+    runFit(bkg->getCurrentPdf(),data,&minNll,&fitStatus,/*max iterations*/7);
     // Add the penalty
 
     minNll=minNll+bkg->getCorrection();
@@ -606,17 +613,14 @@ int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, boo
       snap.assignValueOnly(*params);
       best_index=id;
     }
-  }
+  } // end loop over pdf_index 
   cat->setIndex(best_index);
   params->assignValueOnly(snap);
 
+  std::cout << "[INFO] Best fit Function -- " << bkg->getCurrentPdf()->GetName() << " " << cat->getIndex() <<std::endl;
   std::cout << "[INFO] Best fit parameters " << std::endl;
   params->Print("V");
   
-  if (!silent) {
-    std::cout << "[INFO] Best fit Function -- " << bkg->getCurrentPdf()->GetName() << " " << cat->getIndex() <<std::endl;
-    //bkg->getCurrentPdf()->getParameters(*data)->Print("v");
-  }
   return best_index;
 }
 
@@ -658,7 +662,7 @@ int main(int argc, char* argv[]){
     ("runFtestCheckWithToys",                                                                   "When running the F-test, use toys to calculate pvals (and make plots) ")
     ("is2011",                                                                                  "Run 2011 config")
     ("is2012",                                                                                  "Run 2012 config")
-    ("unblind",                                                                                 "Dont blind plots")
+    ("blind",                                                                                   "blind plots")
     ("isFlashgg",  po::value<int>(&isFlashgg_)->default_value(1),                               "Use Flashgg output ")
     ("isData",  po::value<bool>(&isData_)->default_value(0),                                    "Use Data not MC ")
     ("flashggCats,f", po::value<string>(&flashggCatsStr_)->default_value("UntaggedTag_0,UntaggedTag_1,UntaggedTag_2,UntaggedTag_3,UntaggedTag_4,VBFTag_0,VBFTag_1,VBFTag_2,TTHHadronicTag,TTHLeptonicTag,VHHadronicTag,VHTightTag,VHLooseTag,VHEtTag"),                  "Flashgg category names to consider")
@@ -674,7 +678,7 @@ int main(int argc, char* argv[]){
   po::notify(vm);
   if (vm.count("help")) { cout << desc << endl; exit(1); }
   if (vm.count("is2011")) is2011=true;
-  if (vm.count("unblind")) BLIND=false;
+  if (vm.count("blind")) BLIND=true;
   saveMultiPdf = vm.count("saveMultiPdf");
 
   if (vm.count("verbose")) verbose=true;
@@ -749,22 +753,21 @@ int main(int argc, char* argv[]){
     std::cout << "[INFO] got intL and sqrts " << intL << ", " << sqrts << std::endl;
   }
 
+  // Set up which families of functions you want to test
   vector<string> functionClasses;
   functionClasses.push_back("Bernstein");
   functionClasses.push_back("Exponential");
   functionClasses.push_back("PowerLaw");
   functionClasses.push_back("Laurent");
-  functionClasses.push_back("Chebychev");
+  //functionClasses.push_back("Chebychev");
   functionClasses.push_back("Polynomial");
   map<string,string> namingMap;
   namingMap.insert(pair<string,string>("Bernstein","pol"));
   namingMap.insert(pair<string,string>("Exponential","exp"));
   namingMap.insert(pair<string,string>("PowerLaw","pow"));
   namingMap.insert(pair<string,string>("Laurent","lau"));
-  namingMap.insert(pair<string,string>("Chebychev","che"));
+  //namingMap.insert(pair<string,string>("Chebychev","che"));
   namingMap.insert(pair<string,string>("Polynomial","pol"));
-
-  // store results here
 
   FILE *resFile ;
   if  (singleCategory >-1) resFile = fopen(Form("%s/fTestResults_%s.txt",outDir.c_str(),flashggCats_[singleCategory].c_str()),"w");
@@ -779,6 +782,7 @@ int main(int argc, char* argv[]){
   std:: cout << "[INFO] Got mass from ws " << mass << std::endl;
   pdfsModel.setObsVar(mass);
   double upperEnvThreshold = 0.1; // upper threshold on prob_ftest to include function in envelope (looser than truth function)
+  double minGofThreshold = 0.01;  // minimal goodness of fit to include function in envelope
 
   fprintf(resFile,"Truth Model & d.o.f & $\\Delta NLL_{N+1}$ & $p(\\chi^{2}>\\chi^{2}_{(N\\rightarrow N+1)})$ \\\\\n");
   fprintf(resFile,"\\hline\n");
@@ -786,7 +790,6 @@ int main(int argc, char* argv[]){
   std::string ext = is2011 ? "7TeV" : "8TeV";
         if( isFlashgg_ ){
           if( year_ == "all" ){ ext = "13TeV"; }
-          //else{ ext = "13TeV"; } //FIXME 
           else{ ext = Form("%s_13TeV",year_.c_str()); }
         }
 
@@ -863,7 +866,7 @@ int main(int argc, char* argv[]){
       std::cout << "===> F-TEST for Truth determination" << std::endl;
 
       int counter =0;
-      while (prob<0.05 && order < 7){ //FIXME
+      while (prob<0.05 && order < 7){ 
         cout << "==> " << *funcType << " " << order << endl;
         RooAbsPdf *bkgPdf = getPdf(pdfsModel,*funcType,order,Form("ftest_pdf_%d_%s",(cat+catOffset),ext.c_str()));
         if (!bkgPdf){
@@ -901,7 +904,8 @@ int main(int argc, char* argv[]){
         counter++;
       } // end condition for performing f-test
 
-      fprintf(resFile,"%15s & %d & %5.2f & %5.2f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
+      // next line is commented, as we want to save only the final result (that takes into account both GOF and F-test results
+      //fprintf(resFile,"%15s & %d & %5.3f & %5.3f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
       choices.insert(pair<string,int>(*funcType,cache_order));
       pdfs.insert(pair<string,RooAbsPdf*>(Form("%s%d",funcType->c_str(),cache_order),cache_pdf));
 
@@ -945,14 +949,14 @@ int main(int argc, char* argv[]){
             cache_order=prev_order;
             cache_pdf=prev_pdf;
 
-            // Calculate goodness of fit for the thing to be included (will use toys for lowstats)!
+            // Calculate goodness of fit (will use toys for lowstats)
             double gofProb =0; 
             plot(mass,bkgPdf,data,Form("%s/%s%d_%s",outDir.c_str(),funcType->c_str(),order,catname.c_str()),flashggCats_,fitStatus,&gofProb);
 
             if ((prob < upperEnvThreshold) ) { // Looser requirements for the envelope
 
-              //if (gofProb > 0.01 || order == truthOrder ) {  // Good looking fit or one of our regular truth functions
-              if (gofProb > 0.01) { // minimal requirement on the goodness of fit
+              //if (gofProb > minGofThreshold || order == truthOrder ) {  // Good looking fit or one of our regular truth functions
+              if (gofProb > minGofThreshold) { // minimal requirement on the goodness of fit
 
                 std::cout << "[INFO] Adding to Envelope " << bkgPdf->GetName() << " "<< gofProb 
                   << " 2xNLL + c is " << myNll + bkgPdf->getVariables()->getSize() <<  std::endl;
@@ -973,7 +977,7 @@ int main(int argc, char* argv[]){
           }
         } // end while
 
-        fprintf(resFile,"%15s & %d & %5.2f & %5.2f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
+        fprintf(resFile,"%15s & %d & %5.3f & %5.3f \\\\\n",funcType->c_str(),cache_order+1,chi2,prob);
         choices_envelope.insert(pair<string,std::vector<int> >(*funcType,pdforders));
       }
     } // end loop over families
@@ -1031,8 +1035,9 @@ int main(int argc, char* argv[]){
     outputfile->Close();  
   }
 
+  // Write recommended options to screen and to file
   FILE *dfile = fopen(datfile.c_str(),"w");
-  cout << "[RESULT] Recommended options" << endl;
+  cout << "[RESULT] Recommended options based on truth" << endl;
 
   for (int cat=startingCategory; cat<ncats; cat++){
     cout << "Cat " << cat << endl;
@@ -1041,14 +1046,24 @@ int main(int argc, char* argv[]){
       cout << "\t" << it->first << " - " << it->second << endl;
       fprintf(dfile,"truth=%s:%d:%s%d\n",it->first.c_str(),it->second,namingMap[it->first].c_str(),it->second);
     }
+    fprintf(dfile,"\n");
+  }
+
+
+  cout << "[RESULT] Recommended options for envelope" << endl;
+  for (int cat=startingCategory; cat<ncats; cat++){
+    cout << "Cat " << cat << endl;
+    fprintf(dfile,"cat=%d\n",(cat+catOffset)); 
     for (map<string,std::vector<int> >::iterator it=choices_envelope_vec[cat-startingCategory].begin(); it!=choices_envelope_vec[cat-startingCategory].end(); it++){
       std::vector<int> ords = it->second;
       for (std::vector<int>::iterator ordit=ords.begin(); ordit!=ords.end(); ordit++){
-        fprintf(dfile,"paul=%s:%d:%s%d\n",it->first.c_str(),*ordit,namingMap[it->first].c_str(),*ordit);
+        cout << "\t" << it->first << " - " << *ordit << endl;
+        fprintf(dfile,"envel=%s:%d:%s%d\n",it->first.c_str(),*ordit,namingMap[it->first].c_str(),*ordit);
       }
     }
     fprintf(dfile,"\n");
   }
+
   inFile->Close();
 
   return 0;
