@@ -11,10 +11,11 @@ class window(object):
 
 if __name__ == "__main__":
   
-  tag = "D1_v01" 
+  tag = "D1_v02_bis" 
   doCopyEOS = False
   doCleanEOS = False
   doRun = False
+  doUnblind = True
 
   windows = [
   ##window(1.00,0.009,5),
@@ -55,7 +56,8 @@ if __name__ == "__main__":
       inws = inpath + "allData_" + wtag + ".root"
       outws = "{tag}/window_{wtag}/ws/CMS-BHNL_multipdf_{cat}.root".format(tag=tag,wtag=wtag,cat=cat)
       outdir = "{tag}/window_{wtag}/".format(tag=tag,wtag=wtag)
-      command = "./bin/fTest -i {inws} --saveMultiPdf {outws}  -D {outdir} -f {cat} --mN {m} --sigma {s} --nsigma {ns}  --isData 1 --year 2018 --catOffset {catoffset}".format(
+      command = "./bin/fTest -i {inws} --saveMultiPdf {outws}  -D {outdir} -f {cat} --mN {m} --sigma {s} --nsigma {ns}  \
+                   --isData 1 --year 2018 --catOffset {catoffset} {dounblind}".format(
                      inws=inws,
                      outws=outws,
                      outdir=outdir,
@@ -64,6 +66,7 @@ if __name__ == "__main__":
                      s=w.s,
                      ns=w.ns,
                      catoffset=i,
+                     dounblind="--unblind" if doUnblind else ''
                    )
 
       if not os.path.exists(outdir+'ws'): 
