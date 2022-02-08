@@ -547,7 +547,7 @@ void transferMacros(TFile *inFile, TFile *outFile){
 }
 
 int getBestFitFunction(RooMultiPdf *bkg, RooDataSet *data, RooCategory *cat, bool silent=false){
-/* Get index of the best fit pdf (minimum NLL) among functions in the multipdf.
+/* Get index of the best fit pdf (minimum NLL, including correction) among functions in the multipdf.
    All fits are performed again. */
 
   double global_minNll = 1E10;
@@ -726,7 +726,7 @@ int main(int argc, char* argv[]){
       inWS = (RooWorkspace*)inFile->Get("cms_hgg_workspace");
     }
   } else {
-    inWS = (RooWorkspace*)inFile->Get("cms_hgg_workspace");//FIXME
+    inWS = (RooWorkspace*)inFile->Get("cms_hgg_workspace");
   }
   if (verbose) std::cout << "[INFO]  inWS open " << inWS << std::endl;
   if (saveMultiPdf){
@@ -760,14 +760,14 @@ int main(int argc, char* argv[]){
   functionClasses.push_back("PowerLaw");
   functionClasses.push_back("Laurent");
   //functionClasses.push_back("Chebychev");
-  functionClasses.push_back("Polynomial");
+  //functionClasses.push_back("Polynomial");
   map<string,string> namingMap;
   namingMap.insert(pair<string,string>("Bernstein","pol"));
   namingMap.insert(pair<string,string>("Exponential","exp"));
   namingMap.insert(pair<string,string>("PowerLaw","pow"));
   namingMap.insert(pair<string,string>("Laurent","lau"));
   //namingMap.insert(pair<string,string>("Chebychev","che"));
-  namingMap.insert(pair<string,string>("Polynomial","pol"));
+  //namingMap.insert(pair<string,string>("Polynomial","pol"));
 
   FILE *resFile ;
   if  (singleCategory >-1) resFile = fopen(Form("%s/fTestResults_%s.txt",outDir.c_str(),flashggCats_[singleCategory].c_str()),"w");

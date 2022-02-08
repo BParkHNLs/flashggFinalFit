@@ -11,25 +11,29 @@ class window(object):
 
 if __name__ == "__main__":
   
-  tag = "D1_v02_bis" 
-  doCopyEOS = False
-  doCleanEOS = False
-  doRun = False
-  doUnblind = True
+  tag = "D1_v02_noPoly" 
+  doCopyEOS = True
+  doCleanEOS = True
+  doRun = True
+  doBlind = False
 
   windows = [
   ##window(1.00,0.009,5),
-  window(2.75,0.025,5),
   ##window(3.00,0.025,5),
   ##window(4.50,0.037,5),
 
-  #window(1.0,0.01,5),
-  #window(1.2,0.01,5),
-  #window(1.5,0.01,5),
-  #window(2.0,0.02,5),
-  #window(2.5,0.02,5),
-  #window(3.2,0.025,5),
-  #window(4.0,0.035,5),
+  window(1.0,0.01,5),
+  window(1.2,0.01,5),
+  window(1.5,0.01,5),
+  window(2.0,0.02,5),
+  ###window(2.5,0.02,5),
+  window(2.75,0.025,5),
+  ###window(3.2,0.025,5),
+  window(3.3,0.025,5),
+  window(4.0,0.035,5),
+  window(4.5,0.035,5),
+  window(5.0,0.035,5),
+  window(5.5,0.035,5),
   ]
 
   cats = [
@@ -57,7 +61,7 @@ if __name__ == "__main__":
       outws = "{tag}/window_{wtag}/ws/CMS-BHNL_multipdf_{cat}.root".format(tag=tag,wtag=wtag,cat=cat)
       outdir = "{tag}/window_{wtag}/".format(tag=tag,wtag=wtag)
       command = "./bin/fTest -i {inws} --saveMultiPdf {outws}  -D {outdir} -f {cat} --mN {m} --sigma {s} --nsigma {ns}  \
-                   --isData 1 --year 2018 --catOffset {catoffset} {dounblind}".format(
+                   --isData 1 --year 2018 --catOffset {catoffset} {doblind}".format(
                      inws=inws,
                      outws=outws,
                      outdir=outdir,
@@ -66,7 +70,7 @@ if __name__ == "__main__":
                      s=w.s,
                      ns=w.ns,
                      catoffset=i,
-                     dounblind="--unblind" if doUnblind else ''
+                     doblind="--blind" if doBlind else ''
                    )
 
       if not os.path.exists(outdir+'ws'): 
