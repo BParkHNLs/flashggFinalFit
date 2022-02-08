@@ -10,7 +10,10 @@ class window(object):
 
 
 if __name__ == "__main__":
-  
+ 
+  #########################
+  ## Options
+  ######################## 
   tag = "D1_v02_noPoly" 
   doCopyEOS = True
   doCleanEOS = True
@@ -18,16 +21,13 @@ if __name__ == "__main__":
   doBlind = False
 
   windows = [
-  ##window(1.00,0.009,5),
-  ##window(3.00,0.025,5),
-  ##window(4.50,0.037,5),
-
   window(1.0,0.01,5),
   window(1.2,0.01,5),
   window(1.5,0.01,5),
   window(2.0,0.02,5),
   ###window(2.5,0.02,5),
   window(2.75,0.025,5),
+  ###window(3.00,0.025,5),
   ###window(3.2,0.025,5),
   window(3.3,0.025,5),
   window(4.0,0.035,5),
@@ -44,6 +44,8 @@ if __name__ == "__main__":
   "lxygt5_OS", 
   "lxygt5_SS",
   ]
+  #######################
+  #######################
   
   #doBlind = False
   if doCopyEOS and doCleanEOS:
