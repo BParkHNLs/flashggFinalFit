@@ -80,7 +80,7 @@ int main(){
   RooWorkspace *bkgWS = (RooWorkspace*)bkgFile->Get("cms_hgg_workspace");
   RooWorkspace *sigWS = (RooWorkspace*)sigFile->Get("wsig_8TeV");
 
-  RooRealVar *mass = (RooRealVar*)bkgWS->var("CMS_hgg_mass");
+  RooRealVar *mass = (RooRealVar*)bkgWS->var("hnl_mass");
   RooRealVar *mu = new RooRealVar("mu","mu",-5.,5.);
 
   mass->setBins(320);

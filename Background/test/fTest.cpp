@@ -58,9 +58,11 @@ bool runFtestCheckWithToys=false;
 
 // for blind=true
 int mass = 3.0;
-int sigma = 0.025;
-int mgg_low  = mass - 10*sigma;
-int mgg_high = mass + 10*sigma;
+int sigma = 0.023;
+//int mgg_low  = mass - 10*sigma;
+//int mgg_high = mass + 10*sigma;
+int mgg_low  = mass - 2*sigma;
+int mgg_high = mass + 2*sigma;
 int mgg_low_unblind =  mass - 2*sigma;
 int mgg_high_unblind = mass + 2*sigma;
 int nBinsForFit  = 320; // kept baseline values for Hgg 
@@ -476,8 +478,10 @@ void plot(RooRealVar *mass, map<string,RooAbsPdf*> pdfs, RooDataSet *data, strin
   leg->SetLineColor(0);
   RooPlot *plot = mass->frame();
 
-  mass->setRange("unblindReg_1",mgg_low,mgg_low_unblind);
-  mass->setRange("unblindReg_2",mgg_high_unblind,mgg_high);
+  //mass->setRange("unblindReg_1",mgg_low,mgg_low_unblind);
+  mass->setRange("unblindReg_1",2.885, 2.954);
+  //mass->setRange("unblindReg_2",mgg_high_unblind,mgg_high);
+  mass->setRange("unblindReg_2",3.046,3.115);
   if (BLIND) {
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_1"));
     data->plotOn(plot,Binning(nBinsForPlot),CutRange("unblindReg_2"));
@@ -743,7 +747,8 @@ int main(int argc, char* argv[]){
   vector<map<string,RooAbsPdf*> > pdfs_vec;
 
   PdfModelBuilder pdfsModel;
-  RooRealVar *mass = (RooRealVar*)inWS->var("CMS_hgg_mass");
+  //RooRealVar *mass = (RooRealVar*)inWS->var("CMS_hgg_mass");
+  RooRealVar *mass = (RooRealVar*)inWS->var("hnl_mass");
   std:: cout << "[INFO] Got mass from ws " << mass << std::endl;
   pdfsModel.setObsVar(mass);
   double upperEnvThreshold = 0.1; // upper threshold on delta(chi2) to include function in envelope (looser than truth function)

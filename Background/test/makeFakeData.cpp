@@ -742,7 +742,7 @@ int main(int argc, char* argv[]){
   
 
   RooRealVar *mass =0;
-  mass =(RooRealVar*)inWS->var("CMS_hgg_mass");
+  mass =(RooRealVar*)inWS->var("hnl_mass");
 	
   //this is the finely binned Data! 
   RooAbsData *data = inWS->data(Form("roohist_data_mass_%s",catname.c_str())); // get data ! 
@@ -798,7 +798,7 @@ int main(int argc, char* argv[]){
   float min=+999;
   //now figure out how many events in blinded region we need to generate.
   for (int iEntry =0 ; iEntry < data->numEntries() ; iEntry ++){
-     mass->setVal(data->get(iEntry)->getRealValue("CMS_hgg_mass"));
+     mass->setVal(data->get(iEntry)->getRealValue("hnl_mass"));
      if (mass->getVal()< mhLow) { /*nEntriesInIgnoredRegion+=data->weight(); */ continue;} //ignore events in overflow bins 
      if (mass->getVal()== mhLow) {/*nEntriesInIgnoredRegion0+=data->weight() ;*/ continue;} // ignore events in overflow bins
      if (mass->getVal() < min) min=mass->getVal(); // set min
@@ -890,7 +890,7 @@ int main(int argc, char* argv[]){
     }
     // mh is higgs mass
     RooRealVar *MH = (RooRealVar*)w_sig->var("MH");
-    if (!MH) MH = (RooRealVar*)w_sig->var("CMS_hgg_mass"); // is this right ? Maybe this never happens.
+    if (!MH) MH = (RooRealVar*)w_sig->var("hnl_mass"); // is this right ? Maybe this never happens.
     MH->setMin(mhvalue_); //probably always 125.
     //get signal model pdf
     RooAbsPdf *sigPDF = (RooAbsPdf*)w_sig->pdf(Form("sigpdfrel%s_allProcs",catname.c_str()));
@@ -911,7 +911,7 @@ int main(int argc, char* argv[]){
     //now we fill the actual fakedataset with signal events in the right range picked from the above.
     int filledEntries =0;
    for (int iEntry =0 ; iEntry < tmpDatasetSig->numEntries() ; iEntry ++){
-      mass->setVal(tmpDatasetSig->get(iEntry)->getRealValue("CMS_hgg_mass")); 
+      mass->setVal(tmpDatasetSig->get(iEntry)->getRealValue("hnl_mass")); 
       if (iEntry%100==0) std::cout << "[DEBUG] mass value sig " << mass->getVal() << std::endl;
       if (mass->getVal() < 135 && mass->getVal() > 115){
         fakedataExtra->add( RooArgList(*mass),tmpDatasetSig->weight() );
@@ -945,7 +945,7 @@ int main(int argc, char* argv[]){
   // now select events in the right range from those generated above
   int filledEntries =0;
   for (int iEntry =0 ; iEntry < tmpDataset->numEntries() ; iEntry ++){
-    mass->setVal(tmpDataset->get(iEntry)->getRealValue("CMS_hgg_mass")); 
+    mass->setVal(tmpDataset->get(iEntry)->getRealValue("hnl_mass")); 
     //if (mass->getVal()<100) std::cout << "[DEBUG] mass value nkg LESS THAN  100 " << mass->getVal() << std::endl;
     if (iEntry%1000==0) std::cout << "[INFO] mass value bkg " << mass->getVal() << std::endl;
     if (mass->getVal() < 135 && mass->getVal() > 115){ // event in blinded region, so add it in!
@@ -964,7 +964,7 @@ int main(int argc, char* argv[]){
 
   //finally, add them to the final fakedata
   for (int iEntry =0 ; iEntry < fakedataExtra->numEntries() ; iEntry ++){
-    mass->setVal(fakedataExtra->get(iEntry)->getRealValue("CMS_hgg_mass")); 
+    mass->setVal(fakedataExtra->get(iEntry)->getRealValue("hnl_mass")); 
     fakedata->add( RooArgList(*mass),fakedataExtra->weight() );
   }
   

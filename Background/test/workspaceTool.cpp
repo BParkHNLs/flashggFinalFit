@@ -118,14 +118,14 @@ int main(int argc, char *argv[]){
 	if (! inWS) inWS = (RooWorkspace*)inFile->Get("diphotonDumper/cms_hgg_13TeV");
 	if (! inWS) {std::cout << "ERROR could not find ws " << std::endl;return 0;}
 	std::cout << "[INFO] Workspace Open "<< inWS << std::endl;
-	mass = (RooRealVar*)inWS->var("CMS_hgg_mass");
+	mass = (RooRealVar*)inWS->var("hnl_mass");
 	intLumiREAD = (RooRealVar*)inWS->var("IntLumi");
 	std::cout << "[INFO] Got mass var from ws"<<std::endl;
 	//std::cout << "[INFO] Got intLumi var from ws, value "<< intLumiREAD->getVal()<<std::endl;
 
 	RooWorkspace *outWS = new RooWorkspace();
-	RooRealVar  newmass("CMS_hgg_mass","CMS_hgg_mass",100,180) ;
-	RooRealVar  newweight("wCMS_hgg_mass","wCMS_hgg_mass",0,10) ;
+	RooRealVar  newmass("hnl_mass","hnl_mass",100,180) ;
+	RooRealVar  newweight("whnl_mass","whnl_mass",0,10) ;
 	RooRealVar  sqrts("SqrtS","SqrtS",0,14) ;
 	RooRealVar  intlumi("IntLumi","IntLumi",0,300000) ;
 	sqrts.setVal(13);
@@ -204,7 +204,7 @@ return 0;
 				for (int i=0 ; i<dataset->numEntries(); i++){
 					RooArgSet *argset=(RooArgSet *)dataset->get(i);
 					double w = dataset->weight();
-					double m=argset->getRealValue("CMS_hgg_mass");
+					double m=argset->getRealValue("hnl_mass");
 					//double w=argset->getRealValue("weight");
 					//	if( i %1000==0) std::cout << "entry " << i  <<" -- invariant_mass=" << m << " , weight "<< w << std::endl;
 					newmass=m;
@@ -223,7 +223,7 @@ return 0;
 				/*		for (int i=0 ; i<newdataset->numEntries(); i++){
 							RooArgSet *argset=(RooArgSet *) newdataset->get(i);
 							double w = newdataset->weight();
-							double m=argset->getRealValue("CMS_hgg_mass");
+							double m=argset->getRealValue("hnl_mass");
 				//double w=argset->getRealValue("weight");
 				//	if( i %1000==0) std::cout << " NEW entry " << i  <<" -- invariant_mass=" << m << " , weight "<< w << std::endl;
 				//	newmass=m;

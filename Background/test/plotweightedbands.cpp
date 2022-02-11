@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
   RooSimultaneous *bpdf = (RooSimultaneous*)win->pdf("model_b");
   if (verbose_) std::cout << "[INFO]  get pdfs " << sbpdf << " " << bpdf << std::endl; 
   
-  RooRealVar *mass = win->var("CMS_hgg_mass");
+  RooRealVar *mass = win->var("hnl_mass");
   mass->SetTitle("#m_{#gamma#gamma}");
   mass->setUnit("GeV");
   RooCategory *chan = win->cat("CMS_channel");

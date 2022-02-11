@@ -337,7 +337,7 @@ int main(int argc, char *argv[]) {
     RooRealVar *r = win->var("r");
     if (verbose_) std::cout << " VALUES OF MH " << MH->getVal() << " and r " << r->getVal() <<std::endl;
     TFile *ftmp = new TFile("tmpfile.root","RECREATE");
-    RooRealVar *mass = win->var("CMS_hgg_mass");
+    RooRealVar *mass = win->var("hnl_mass");
     mass->SetTitle("#m_{#gamma#gamma}");
     mass->setUnit("GeV");
     RooCategory *chan = win->cat("CMS_channel");
@@ -726,7 +726,7 @@ int main(int argc, char *argv[]) {
     cerr << "Workspace is null" << endl;
     exit(1);
   }
-  RooRealVar *mcMass= (RooRealVar*)hggWS->var("CMS_hgg_mass");
+  RooRealVar *mcMass= (RooRealVar*)hggWS->var("hnl_mass");
   RooRealVar *mcMh = (RooRealVar*)hggWS->var("MH");
   mcMh->setVal(125);
   mcMass->setRange("higgsRange",105.,140.);

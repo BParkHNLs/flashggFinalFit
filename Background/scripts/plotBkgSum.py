@@ -35,7 +35,7 @@ def makePlot(datfile,bkgfile,sigfile,ncats,sqrtS):
 	sigpdf = sws.pdf('sigpdfrelAllCats_allProcs')
 	bkgpdf = r.RooAddPdf('bkg','bkg',bkgPdfs,bkgNorms)
 
-	mass = bws.var('CMS_hgg_mass')
+	mass = bws.var('hnl_mass')
 	mass.setRange('low',100,110)
 	mass.setRange('high',150,180)
 

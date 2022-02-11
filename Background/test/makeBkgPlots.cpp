@@ -804,7 +804,7 @@ int main(int argc, char* argv[]){
 		cout << "[ERROR] "<< "Cant find the workspace" << endl;
 		exit(0);
 	}
-	RooRealVar *mgg = (RooRealVar*)inWS->var("CMS_hgg_mass");
+	RooRealVar *mgg = (RooRealVar*)inWS->var("hnl_mass");
   string catname;
 	if (isFlashgg_){
 		catname = Form("%s",flashggCats_[cat].c_str());
@@ -1093,7 +1093,7 @@ int main(int argc, char* argv[]){
 			}
 			else {
 				RooRealVar *MH = (RooRealVar*)w_sig->var("MH");
-				if (!MH) MH = (RooRealVar*)w_sig->var("CMS_hgg_mass");
+				if (!MH) MH = (RooRealVar*)w_sig->var("hnl_mass");
 				RooAbsPdf *sigPDF = (RooAbsPdf*)w_sig->pdf(Form("sigpdfrel%s_allProcs",catname.c_str()));
 				MH->setVal(mhvalue_);
 				sigPDF->plotOn(plot,Normalization(1.0,RooAbsReal::RelativeExpected),LineColor(kBlue),LineWidth(3));

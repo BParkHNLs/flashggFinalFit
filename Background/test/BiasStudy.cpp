@@ -190,7 +190,7 @@ std::cout << "DEBUG LC 1 " <<std::endl;
     exit(1);
   }
 
-  RooRealVar *mass = (RooRealVar*)bkgWS->var("CMS_hgg_mass");
+  RooRealVar *mass = (RooRealVar*)bkgWS->var("hnl_mass");
   RooRealVar *mu = new RooRealVar("mu","mu",0.,mu_low,mu_high);
 
 std::cout << "DEBUG LC 2 " <<std::endl;

@@ -159,8 +159,8 @@ int main(int argc, char *argv[]){
 
 	// new workspace 
 	RooWorkspace *outWS = new RooWorkspace();
-	RooRealVar  newmass("CMS_hgg_mass","CMS_hgg_mass",100,180) ;
-	RooRealVar  newweight("wCMS_hgg_mass","wCMS_hgg_mass",0,10) ;
+	RooRealVar  newmass("hnl_mass","hnl_mass",100,180) ;
+	RooRealVar  newweight("whnl_mass","whnl_mass",0,10) ;
 	RooRealVar  sqrts("SqrtS","SqrtS",0,14) ;
 	RooRealVar  intlumi("IntLumi","IntLumi",0,300000) ;
 	sqrts.setVal(13);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[]){
 		if (! inWS) return 0; // if not, quit.
 
 		if( verbose_) std::cout << "[INFO] Workspace Open "<< inWS << std::endl;
-		mass = (RooRealVar*)inWS->var("CMS_hgg_mass");
+		mass = (RooRealVar*)inWS->var("hnl_mass");
 		if (verbose_) std::cout << "[INFO] Got mass var from ws"<<std::endl;
 
 		outFile->cd();
