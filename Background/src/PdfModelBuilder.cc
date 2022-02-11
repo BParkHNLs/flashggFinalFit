@@ -45,6 +45,8 @@ PdfModelBuilder::PdfModelBuilder():
   recognisedPdfTypes.push_back("Exponential");
   recognisedPdfTypes.push_back("PowerLaw");
   recognisedPdfTypes.push_back("Laurent");
+  recognisedPdfTypes.push_back("Chebychev");
+  recognisedPdfTypes.push_back("Polynomial");
   recognisedPdfTypes.push_back("KeysPdf");
   recognisedPdfTypes.push_back("File");
 
@@ -72,20 +74,33 @@ void PdfModelBuilder::setSignalModifierConstant(bool val){
   signalModifier->setConstant(val);
 }
 
+RooAbsPdf* PdfModelBuilder::getPolynomial(string prefix, int order){
+  
+  RooArgList *coeffList = new RooArgList();
+  for (int i=0; i<order; i++){
+    string name = Form("%s_p%d",prefix.c_str(),i);
+    RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-15.,15.);
+    params.insert(pair<string,RooRealVar*>(name,param));
+    coeffList->add(*params[name]);
+  }
+  RooPolynomial *poly = new RooPolynomial(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
+  return poly;
+
+}
+
 RooAbsPdf* PdfModelBuilder::getChebychev(string prefix, int order){
   
   RooArgList *coeffList = new RooArgList();
   for (int i=0; i<order; i++){
     string name = Form("%s_p%d",prefix.c_str(),i);
     //params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),1.0,0.,5.)));
-    RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-10.,10.);
+    RooRealVar *param = new RooRealVar(name.c_str(),name.c_str(),0.01,-15.,15.);
     //RooFormulaVar *form = new RooFormulaVar(Form("%s_sq",name.c_str()),Form("%s_sq",name.c_str()),"@0*@0",RooArgList(*param));
     params.insert(pair<string,RooRealVar*>(name,param));
     //prods.insert(pair<string,RooFormulaVar*>(name,form));
     coeffList->add(*params[name]);
   }
-  //RooChebychev *cheb = new RooChebychev(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
-  RooPolynomial *cheb = new RooPolynomial(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
+  RooChebychev *cheb = new RooChebychev(prefix.c_str(),prefix.c_str(),*obs_var,*coeffList);
   return cheb;
   //bkgPdfs.insert(pair<string,RooAbsPdf*>(bern->GetName(),bern));
 
@@ -244,7 +259,7 @@ RooAbsPdf* PdfModelBuilder::getPowerLawSingle(string prefix, int order){
     for (int i=1; i<=npows; i++){
       string name =  Form("%s_p%d",prefix.c_str(),i);
       string ename =  Form("%s_e%d",prefix.c_str(),i);
-      params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),TMath::Max(-9.,-1.*(i+1)),-9.,1.)));
+      params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),TMath::Max(-9.,-1.*(i+1)),-9.,4.)));
       //params[name]->removeRange();
       utilities.insert(pair<string,RooAbsPdf*>(ename, new RooPower(ename.c_str(),ename.c_str(),*obs_var,*params[name])));
       pows->add(*utilities[ename]);
@@ -347,12 +362,15 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
     for (int i=1; i<=nfracs; i++){
       string name =  Form("%s_f%d",prefix.c_str(),i);
       params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),0.9-float(i-1)*1./nfracs,0.0001,0.9999)));
+      //params[name]->removeRange();
       fracs->add(*params[name]);
     }
     for (int i=1; i<=nexps; i++){
       string name =  Form("%s_p%d",prefix.c_str(),i);
       string ename =  Form("%s_e%d",prefix.c_str(),i);
-      params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),TMath::Max(-1.,-0.04*(i+1)),-1.,0.)));
+      //params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),TMath::Max(-1.,-0.04*(i+1)),-1.,0.)));
+      params.insert(pair<string,RooRealVar*>(name, new RooRealVar(name.c_str(),name.c_str(),TMath::Max(-3.,-0.04*(i+1)),-4.,0.)));
+      //params[name]->removeRange();
       utilities.insert(pair<string,RooAbsPdf*>(ename, new RooExponential(ename.c_str(),ename.c_str(),*obs_var,*params[name])));
       exps->add(*utilities[ename]);
     }
@@ -360,7 +378,6 @@ RooAbsPdf* PdfModelBuilder::getExponentialSingle(string prefix, int order){
     //exps->Print("v");
     RooAbsPdf *exp = new RooAddPdf(prefix.c_str(),prefix.c_str(),*exps,*fracs,true);
     //exp->Print("v");
-    cout << "--------------------------" << endl;
     return exp;
     //bkgPdfs.insert(pair<string,RooAbsPdf*>(exp->GetName(),exp));
 
@@ -388,6 +405,8 @@ void PdfModelBuilder::addBkgPdf(string type, int nParams, string name, bool cach
   if (type=="Exponential") pdf = getExponentialSingle(name,nParams);
   if (type=="PowerLaw") pdf = getPowerLawSingle(name,nParams);
   if (type=="Laurent") pdf = getLaurentSeries(name,nParams);
+  if (type=="Chebychev") pdf = getChebychev(name,nParams);
+  if (type=="Polynomial") pdf = getPolynomial(name,nParams);
   if (type=="KeysPdf") pdf = getKeysPdf(name);
   if (type=="File") pdf = getPdfFromFile(name);
 
